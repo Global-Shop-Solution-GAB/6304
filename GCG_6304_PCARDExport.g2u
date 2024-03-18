@@ -1,0 +1,901 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.SS_Form1..Create
+Gui.SS_Form1..Size(17295,12270)
+Gui.SS_Form1..MinX(0)
+Gui.SS_Form1..MinY(0)
+Gui.SS_Form1..Position(0,0)
+Gui.SS_Form1..BackColor(-2147483633)
+Gui.SS_Form1..MousePointer(0)
+Gui.SS_Form1..Caption("Payment Export")
+Gui.SS_Form1..MaxButton(False)
+Gui.SS_Form1..Event(UnLoad,SS_Form1_Unload)
+Gui.SS_Form1.GsGrid.Create(GsGridControl)
+Gui.SS_Form1.GsGrid.Size(16725,10830)
+Gui.SS_Form1.GsGrid.Position(180,660)
+Gui.SS_Form1.dtpBeg.Create(DatePicker)
+Gui.SS_Form1.dtpBeg.Size(1500,285)
+Gui.SS_Form1.dtpBeg.Position(750,210)
+Gui.SS_Form1.dtpEnd.Create(DatePicker)
+Gui.SS_Form1.dtpEnd.Size(1500,285)
+Gui.SS_Form1.dtpEnd.Position(2625,225)
+Gui.SS_Form1.chkExported.Create(CheckBox)
+Gui.SS_Form1.chkExported.Size(1785,480)
+Gui.SS_Form1.chkExported.Position(4305,135)
+Gui.SS_Form1.chkExported.Caption("Include Exported")
+Gui.SS_Form1.chkExported.Visible(False)
+Gui.SS_Form1.cmdFilter.Create(Button)
+Gui.SS_Form1.cmdFilter.Size(855,375)
+Gui.SS_Form1.cmdFilter.Position(6210,195)
+Gui.SS_Form1.cmdFilter.Caption("Filter")
+Gui.SS_Form1.cmdFilter.Event(Click,cmdFilter_Click)
+Gui.SS_Form1.lbl2.Create(Label,"From",True,555,255,0,120,270,True,0,"Arial",8,-2147483633,0)
+Gui.SS_Form1.lbl3.Create(Label,"to",True,285,255,0,2325,300,True,0,"Arial",8,-2147483633,0)
+Gui.SS_Form1.cmdALL.Create(Button)
+Gui.SS_Form1.cmdALL.Size(1170,375)
+Gui.SS_Form1.cmdALL.Position(7260,210)
+Gui.SS_Form1.cmdALL.Caption("Select ALL")
+Gui.SS_Form1.cmdALL.Event(Click,cmdALL_Click)
+Gui.SS_Form1.cmdDeselect.Create(Button)
+Gui.SS_Form1.cmdDeselect.Size(1170,375)
+Gui.SS_Form1.cmdDeselect.Position(8640,210)
+Gui.SS_Form1.cmdDeselect.Caption("Deselect ALL")
+Gui.SS_Form1.cmdDeselect.Event(Click,cmdDeselect_Click)
+Gui.SS_Form1.cmdExport.Create(Button)
+Gui.SS_Form1.cmdExport.Size(990,375)
+Gui.SS_Form1.cmdExport.Position(15855,195)
+Gui.SS_Form1.cmdExport.Caption("Export")
+Gui.SS_Form1.cmdExport.Event(Click,cmdExport_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'*******************************************
+'Developer : RANJJIT NAIR
+'Customer :  ELMET
+'PCARD FILE Export
+'*******************************************
+
+f.Intrinsic.Control.If(v.Caller.Hook,=,"14501")
+'vendor Option populate Hook
+	Variable.Passed.000070.Set("PCARD ADDRESS")
+	Variable.Passed.000046.Set("PCARD FLAG(Y/N)")
+f.Intrinsic.Control.Else
+	F.ODBC.Connection!conx.OpenCompanyConnection(300)
+	f.Intrinsic.Control.CallSub(CheckTable)
+	Gui.SS_Form1..Show
+	gui.SS_Form1.GsGrid.Anchor(7)
+f.Intrinsic.Control.EndIf
+
+Program.Sub.Main.End
+
+Program.Sub.Process.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+
+
+f.Intrinsic.Control.CallSub(Read_configFile)
+
+f.Intrinsic.Control.CallSub(CCFileExportNew)
+
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.EndTry
+Program.Sub.Process.End
+
+Program.Sub.CCFileExportNew.Start
+f.Intrinsic.Control.Try
+
+
+V.Local.sLenArray.Declare	
+	V.Local.sLen.Declare	
+	V.Local.sWrite.Declare
+	V.Local.sVal.Declare
+	V.Local.sDate.Declare
+	V.Local.sValArray.Declare
+	V.Local.sLineHD.Declare	
+	V.Local.sLinePYCHK.Declare	
+	V.Local.sLinePYCCR.Declare	
+	V.Local.sLinePAPE.Declare	
+	V.Local.sLinePAPR.Declare	
+	V.Local.sLineCC.Declare	
+	V.Local.sLineCK.Declare	
+	V.Local.sLineIN.Declare	
+	V.Local.sLineTR.Declare	
+	V.Local.sLinePAO.Declare
+	
+	V.Local.lLenArrayTR.Declare
+	V.Local.lLenArrayCK.Declare
+	V.Local.lLenArrayPAPR.Declare
+	V.Local.lLenArrayPAO.Declare
+	V.Local.lLenArrayPAPE.Declare
+	V.Local.lLenArrayPYCCR.Declare
+	V.Local.lLenArrayPYCHK.Declare
+	V.Local.lLenArrayHD.Declare
+	V.Local.lLenArrayIN.Declare
+	V.Local.lLenArrayCC.Declare
+	
+	V.Local.i.Declare
+	V.Local.dBDate.Declare
+	V.Local.sSql.Declare
+	V.Local.dEDate.Declare
+	V.Local.iCnt.Declare(long,0)
+	
+	V.Local.sChkno.Declare
+	V.Local.sChkAmt.Declare
+	V.Local.sChkAmt1.Declare
+	V.Local.sLine.Declare
+	v.Local.sVarAmb.Declare
+	v.Local.spaymentamt.Declare
+	
+	v.Local.sINVNo.Declare
+	v.Local.sINVNo_lpad20.Declare
+	v.Local.sINVAMT.Declare
+	v.Local.sINVDT.Declare
+	v.Local.sChkINVAmt.Declare
+	
+	v.Local.sVendoNo_lpad1.Declare
+	v.Local.sEmailID.Declare
+	
+	v.local.slastCKNO.Declare
+	v.local.slastVendNO.Declare
+	
+	v.Local.sCHKCCR.Declare
+	v.Local.Szipcode.Declare
+	
+	v.Local.sABSINVAMT.Declare
+	v.Local.sAMTSign.Declare
+	v.Local.sTOTcnt.Declare
+	v.Local.fTOTPayAmt.Declare
+	v.Local.sEMC.Declare
+	v.Local.sCCZip.Declare
+	v.Local.SCONTROLNO.Declare
+	
+	v.local.slastInvNO.Declare
+	v.Local.sDisAmt.Declare
+
+';***********************************
+V.Local.dBDate.Set(V.Screen.SS_Form1!dtpBeg.Value)
+V.Local.dEDate.Set(V.Screen.SS_Form1!dtpEnd.Value)
+v.local.slastCKNO.set("")
+
+f.Data.DataView.SetFilter("DTPAY","DVPAY","select=true")
+f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY.RowCount,>,0)
+	F.Intrinsic.UI.InvokeWaitDialog("Exporting File...","Please Wait...")
+	f.Data.DataView.SetSort("DTPAY","DVPAY","vend_no,CK_NO,AMOUNT")
+	
+	F.Intrinsic.String.Format(v.Ambient.Date,"YYYY-MM-DD",V.Local.sDate)
+
+	v.Local.SCONTROLNO.Set(V.Global.HDR-FILE-CONTROL-NO)
+	
+	f.Intrinsic.String.Build("HD|{0}|{1}|",v.Local.SCONTROLNO,V.Local.sDate,V.Local.sLineHD)
+	f.Intrinsic.Control.for(v.Local.i,0,V.DataView.DTPAY!DVPAY.RowCount--)
+	
+		f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).vend_no!FieldVal,<>,v.local.slastVendNO)
+		'new record
+			v.local.slastCKNO.set(V.DataView.DTPAY!DVPAY(v.Local.i).CK_NO!FieldVal)
+			v.local.slastVendNO.set(V.DataView.DTPAY!DVPAY(v.Local.i).vend_no!FieldVal)
+			
+		'******not repeating****************
+		
+			'PYCHKC[chkno][10space][chkdate][chkdate][chkdate][chkAMT]USDD[2050000427220][3space][ABA][121000248][151space][15sp][160sp]
+		
+			V.Local.sChkno.Set(V.DataView.DTPAY!DVPAY(v.Local.i).CK_NO!FieldVal)
+			F.Intrinsic.String.Format(V.DataView.DTPAY!DVPAY(v.Local.i).CK_DATE!FieldVal,"YYYY-MM-DD",V.Local.sDate)
+	
+			F.Intrinsic.String.Format(V.DataView.DTPAY!DVPAY(v.Local.i).CHKAMTHDR!FieldVal,"#0.00",V.Local.sChkAmt)
+'			f.Intrinsic.String.Split(V.Local.sChkAmt,".",V.Local.sChkAmt1)
+'			F.Intrinsic.String.LPad(V.Local.sChkAmt1(0),"0",16,V.Local.sChkAmt)
+'			f.Intrinsic.String.Build("{0}.{1}",V.Local.sChkAmt,V.Local.sChkAmt1(1),V.Local.sChkAmt)
+		
+			f.Intrinsic.String.Mid(V.DataView.DTPAY!DVPAY(v.Local.i).CK_NO!FieldVal,1,1,v.Local.sCHKCCR)
+			f.Intrinsic.Control.If(v.Local.sCHKCCR,=,"A")
+				'CreditCard
+				'	PYCCRC
+				'[chkno][10space][chkdate][chkdate][chkdate][chkAMT]USD[1space][5569317002018067][3space][3space][11space][151space][LINEP362][EMC01]
+
+				f.Intrinsic.String.LPad(V.DataView.DTPAY!DVPAY(v.Local.i).vend_no!FieldValtrim,"0",8,v.Local.sEMC)
+			
+				f.Intrinsic.String.Build("PY|CCR||{0}|{1}|||{2}|USD||4808013000645142||||||||||||||ELMET322|{3}||||",V.Local.sChkno,V.Local.sDate,V.Local.sChkAmt,v.Local.sEMC,V.Local.sVal)
+
+				V.Local.sLinePYCCR.Set(V.Local.sVal)
+				V.Local.sLinePYCHK.Set(V.Local.sLinePYCCR)
+				f.Intrinsic.String.lPad(V.Global.HDR-FILE-CONTROL-NO,"0","10",v.Local.SCONTROLNO)
+				F.Intrinsic.String.Split(V.Local.sVal,"*!*",V.Local.sValArray)
+				F.Intrinsic.String.PositionalString(V.Local.sValArray,V.Local.lLenArrayCC,V.Local.sLineCC)
+'				v.Local.sCCZip.Set(v.Global.NAOP-ZIP)
+				
+				f.Intrinsic.String.Replace(V.DataView.DTPAY!DVPAY(v.Local.i).Code_Zip!FieldValtrim,"-","",v.Local.sCCZip)
+				v.Local.sEmailID.Set(V.DataView.DTPAY!DVPAY(v.Local.i).Vend_ADDR!FieldValtrim)
+				f.Intrinsic.String.Build("CC|{0}|||||{1}|10003|||",V.Global.HDR-FILE-CONTROL-NO,v.Local.sEmailID,V.Local.sVal)
+				V.Local.sLineCC.Set(V.Local.sVal)
+			f.Intrinsic.Control.EndIF
+			
+				'PAO1
+		'	2*!*60*!*308*!*9*!*112*!*10
+		'PAO1Wells Fargo[308sp][000000000][112sp][000000000]	
+		
+'			f.Intrinsic.String.Build("PAO1*!*Wells Fargo*!**!*000000000*!**!*0000000000","",V.Local.sVal)
+'			F.Intrinsic.String.Split(V.Local.sVal,"*!*",V.Local.sValArray)
+'			F.Intrinsic.String.PositionalString(V.Local.sValArray,V.Local.lLenArrayPAO,V.Local.sLinePAO)
+		
+		'PAPE
+		'4*!*120*!*50*!*55*!*55*!*55*!*30*!*3*!*9*!*2*!*30*!*80*!*10
+		'PAPE[NameVendor][EMC01][Address1][Address2][55sp][City][State][Code_zip][Country][30sp][80sp][10]
+			v.Local.sEMC.Set(V.DataView.DTPAY!DVPAY(v.Local.i).vend_no!FieldValtrim)
+			f.Intrinsic.String.Build("PA|PE|{0}||{1}||||||{2}|||||",V.DataView.DTPAY!DVPAY(v.Local.i).Payee!FieldValtrim,V.DataView.DTPAY!DVPAY(v.Local.i).vend_no!FieldValtrim,V.DataView.DTPAY!DVPAY(v.Local.i).Code_Zip!FieldValtrim,V.Local.sVal)
+			V.Local.sLinePAPE.Set(V.Local.sVal)
+		
+		
+		'PAPR[NAOP-NAME][NAOP-INDENTIFICATION-NO][NAOP-ADDR-LINE-1][NAOP-ADDR-LINE-2][NAOP-ADDR-LINE-3][NAOP-CITY][NAOP-STATE][NAOP-ZIP][NAOP-COUNTRY-CODE][NAOP-COUNTRY-NAME][NAOP-EMAIL-ADDR][NAOP-PHONE-NO]
+
+		
+			f.Intrinsic.String.Build("PA|PR|{0}|||||||||||{1}|{2}||",v.Global.NAOP-NAME,v.Global.NAOP-EMAIL-ADDR,v.Global.NAOP-PHONE-NO,V.Local.sVal)
+			V.Local.sLinePAPR.Set(V.Local.sVal)
+
+		'******not repeating****************
+
+					'**********Invoice details*************************
+'			v.Local.sINVNo.Set(V.DataView.DTPAY!DVPAY(v.Local.i).INVno!FieldVal)
+'			f.Intrinsic.String.LPad(v.Local.sINVNo," ",20,v.Local.sINVNo_lpad20)
+'				
+'			'read Check AMT amt 
+'			f.Intrinsic.Math.Abs(V.DataView.DTPAY!DVPAY(v.Local.i).AMOUNT!FieldVal,v.Local.sABSINVAMT)
+'			f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).AMOUNT!FieldVal,<,0)
+'				v.Local.sAMTSign.Set("-")
+'			f.Intrinsic.Control.Else
+'				v.Local.sAMTSign.Set(" ")
+'			f.Intrinsic.Control.endif
+'			
+'			F.Intrinsic.String.Format(v.Local.sABSINVAMT,"#0.00",v.Local.sChkINVAmt)
+'			f.Intrinsic.String.Split(V.Local.sChkINVAmt,".",V.Local.sChkAmt1)
+'			F.Intrinsic.String.LPad(V.Local.sChkAmt1(0),"0",14,V.Local.sChkINVAmt)
+'			f.Intrinsic.String.Build("{0}{1}.{2}",v.Local.sAMTSign,V.Local.sChkINVAmt,V.Local.sChkAmt1(1),V.Local.sChkINVAmt)
+'			
+'			
+'			'read invoice amt 
+'			f.Intrinsic.Math.Abs(V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,v.Local.sABSINVAMT)
+'			f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,<,0)
+'				v.Local.sAMTSign.Set("-")
+'			f.Intrinsic.Control.Else
+'				v.Local.sAMTSign.Set(" ")
+'			f.Intrinsic.Control.endif
+'			
+'			F.Intrinsic.String.Format(v.Local.sABSINVAMT,"#0.00",v.Local.sINVAMT)
+'			f.Intrinsic.String.Split(V.Local.sINVAMT,".",V.Local.sChkAmt1)
+'			F.Intrinsic.String.LPad(V.Local.sChkAmt1(0),"0",14,V.Local.sINVAmt)
+'			f.Intrinsic.String.Build("{0}{1}.{2}",v.Local.sAMTSign,V.Local.sINVAmt,V.Local.sChkAmt1(1),V.Local.sINVAmt)
+				
+			F.Intrinsic.String.Format(V.DataView.DTPAY!DVPAY(v.Local.i).INVDT!FieldVal,"YYYY-MM-DD",v.Local.sINVDT)
+		'**********Invoice details*************************
+			
+			f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).Check_disc_cmpny!FieldVal,>,0)
+				'disamt >0 show -ve
+				f.Intrinsic.String.Build("-{0}",V.DataView.DTPAY!DVPAY(v.Local.i).Check_disc_cmpny!FieldVal,v.Local.sDisAmt)
+			f.Intrinsic.Control.Else
+				v.Local.sDisAmt.Set(V.DataView.DTPAY!DVPAY(v.Local.i).Check_disc_cmpny!FieldVal)
+			f.Intrinsic.Control.EndIf
+			
+			f.Intrinsic.String.Build("IN|{0}|||{1}|{2}|{3}||IV||||||",V.DataView.DTPAY!DVPAY(v.Local.i).INVno!FieldValtrim,V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,V.DataView.DTPAY!DVPAY(v.Local.i).Amount_cmpny!FieldVal,v.Local.sDisAmt,V.Local.sVal)
+			V.Local.sLineIN.Set(V.Local.sVal)
+			
+			v.Local.sVarAmb.Set(V.Ambient.NewLine)
+			
+			f.Intrinsic.String.Build("{0}{1}{2}{1}{3}{1}{4}{1}{5}{1}{6}",V.Local.sLine,v.Local.sVarAmb,V.Local.sLinePYCHK,V.Local.sLinePAPR,V.Local.sLinePAPE,V.Local.sLineCC,V.Local.sLineIN,V.Local.sLine)
+			
+			F.Intrinsic.Math.Add(V.Local.iCnt,1,V.Local.iCnt)
+		f.Intrinsic.Control.Else
+			
+				'**********Invoice details*************************
+			v.Local.sINVNo.Set(V.DataView.DTPAY!DVPAY(v.Local.i).INVno!FieldVal)
+			f.Intrinsic.String.LPad(v.Local.sINVNo," ",20,v.Local.sINVNo_lpad20)
+				
+			'read Check AMT amt 
+			f.Intrinsic.Math.Abs(V.DataView.DTPAY!DVPAY(v.Local.i).AMOUNT!FieldVal,v.Local.sABSINVAMT)
+			f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).AMOUNT!FieldVal,<,0)
+				v.Local.sAMTSign.Set("-")
+			f.Intrinsic.Control.Else
+				v.Local.sAMTSign.Set(" ")
+			f.Intrinsic.Control.endif
+			
+			F.Intrinsic.String.Format(v.Local.sABSINVAMT,"#0.00",v.Local.sChkINVAmt)
+			f.Intrinsic.String.Split(V.Local.sChkINVAmt,".",V.Local.sChkAmt1)
+			F.Intrinsic.String.LPad(V.Local.sChkAmt1(0),"0",14,V.Local.sChkINVAmt)
+			f.Intrinsic.String.Build("{0}{1}.{2}",v.Local.sAMTSign,V.Local.sChkINVAmt,V.Local.sChkAmt1(1),V.Local.sChkINVAmt)
+		
+		
+			'read invoice amt 
+			f.Intrinsic.Math.Abs(V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,v.Local.sABSINVAMT)
+			f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,<,0)
+				v.Local.sAMTSign.Set("-")
+			f.Intrinsic.Control.Else
+				v.Local.sAMTSign.Set(" ")
+			f.Intrinsic.Control.endif
+			
+			F.Intrinsic.String.Format(v.Local.sABSINVAMT,"#0.00",v.Local.sINVAMT)
+			f.Intrinsic.String.Split(V.Local.sINVAMT,".",V.Local.sChkAmt1)
+			F.Intrinsic.String.LPad(V.Local.sChkAmt1(0),"0",14,V.Local.sINVAmt)
+			f.Intrinsic.String.Build("{0}{1}.{2}",v.Local.sAMTSign,V.Local.sINVAmt,V.Local.sChkAmt1(1),V.Local.sINVAmt)
+			
+			F.Intrinsic.String.Format(V.DataView.DTPAY!DVPAY(v.Local.i).INVDT!FieldVal,"YYYY-MM-DD",v.Local.sINVDT)
+		'**********Invoice details*************************
+			
+			f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY(v.Local.i).Check_disc_cmpny!FieldVal,>,0)
+				f.Intrinsic.String.Build("-{0}",V.DataView.DTPAY!DVPAY(v.Local.i).Check_disc_cmpny!FieldVal,v.Local.sDisAmt)
+			f.Intrinsic.Control.Else
+				v.Local.sDisAmt.Set(V.DataView.DTPAY!DVPAY(v.Local.i).Check_disc_cmpny!FieldVal)
+			f.Intrinsic.Control.EndIf
+			
+			f.Intrinsic.String.Build("IN|{0}|||{1}|{2}|{3}||IV||||||",V.DataView.DTPAY!DVPAY(v.Local.i).INVno!FieldValtrim,V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,V.DataView.DTPAY!DVPAY(v.Local.i).Amount_cmpny!FieldVal,v.Local.sDisAmt,V.Local.sVal)
+			V.Local.sLineIN.Set(V.Local.sVal)
+		
+'		.************************************************************************
+			f.Intrinsic.String.Build("{0}{1}{2}",V.Local.sLine,v.Ambient.NewLine,V.Local.sLineIN,V.Local.sLine)
+		f.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Math.Add(V.DataView.DTPAY!DVPAY(v.Local.i).INVAMT!FieldVal,V.Local.fTOTPayAmt,V.Local.fTOTPayAmt)
+	F.Intrinsic.Control.Next(V.Local.i)
+
+
+'	TR*!*PaymentCNT*!*PaymentAMT
+'	2*!*8*!*21
+
+
+	
+	v.Local.spaymentamt.Set(V.Local.fTOTPayAmt)
+	F.Intrinsic.String.Format(v.Local.spaymentamt,"#0.00",v.Local.spaymentamt)
+
+	f.Intrinsic.String.Build("TR|{0}|{1}|",V.Local.iCnt,v.Local.spaymentamt,V.Local.sVal)
+	V.Local.sLineTR.Set(V.Local.sVal)
+	
+	f.Intrinsic.String.build("{0}{1}{2}{3}",V.Local.sLineHD,V.Local.sLine,v.Ambient.NewLine,V.Local.sLineTR,V.Local.sWrite)
+	
+	
+	'write to file
+	V.Local.sFolder.Declare
+	v.local.bRet.Declare
+	V.Local.sFile.Declare
+	
+		F.Intrinsic.String.Build("{0}\custom",V.Caller.GlobalDir,V.Local.sFolder)
+		f.Intrinsic.File.DirExists(V.Local.sFolder,v.local.bRet)
+		f.Intrinsic.Control.If(v.local.bRet,=,False)
+			f.Intrinsic.File.CreateDir(V.Local.sFolder)
+		f.Intrinsic.Control.EndIf 
+		
+		F.Intrinsic.String.Build("{0}\5798",V.Local.sFolder,V.Local.sFolder)
+		f.Intrinsic.File.DirExists(V.Local.sFolder,v.local.bRet)
+		f.Intrinsic.Control.If(v.local.bRet,=,False)
+			f.Intrinsic.File.CreateDir(V.Local.sFolder)
+		f.Intrinsic.Control.EndIf 
+		
+		F.Intrinsic.String.Build("{0}\CCFile",V.Local.sFolder,V.Local.sFolder)
+		f.Intrinsic.File.DirExists(V.Local.sFolder,v.local.bRet)
+		f.Intrinsic.Control.If(v.local.bRet,=,False)
+			f.Intrinsic.File.CreateDir(V.Local.sFolder)
+		f.Intrinsic.Control.EndIf 
+	
+		v.Local.sdd1.Declare
+		v.Local.sdd2.Declare
+		v.Local.sdd3.Declare
+		
+		f.Intrinsic.String.Format(v.Ambient.date,"mm",v.Local.sdd1)
+		f.Intrinsic.String.Format(v.Ambient.date,"dd",v.Local.sdd2)
+		f.Intrinsic.String.Format(v.Ambient.date,"YY",v.Local.sdd3)
+		
+		f.Intrinsic.String.Build("{0}\elmt.{1}{2}{3}.txt",V.Local.sFolder,v.Local.sdd1,v.Local.sdd2,v.Local.sdd3,V.Local.sFile)
+		F.Intrinsic.File.String2File(V.Local.sFile,V.Local.sWrite)
+		
+		f.Data.DataView.ToDataTableDistinct("DTPAY","DVPAY","ImportFinal","CK_NO*!*INVno")
+		
+		f.Data.DataTable.AddColumn("ImportFinal","Exported_By","string",v.Caller.User)
+		f.Data.DataTable.AddColumn("ImportFinal","Exported_Date","datetime",v.Ambient.now)
+		f.Data.DataTable.AddColumn("ImportFinal","Exported","Bit",1)
+		F.Data.DataTable.SaveToDB("ImportFinal","conx","GCG_5798_PCARD","CK_NO*!*INVno",256,"INVno@!@Invoice*!*CK_NO@!@Check_no*!*Exported_By@!@Exported_By*!*Exported_Date@!@Exported_Date*!*Exported@!@Exported")
+		F.Intrinsic.UI.ShowOpenFileDialog(V.Local.sFile,"txt*.txt",V.Local.sFile)
+f.Intrinsic.Control.Else
+	f.Data.DataView.SetFilter("DTPAY","DVPAY","")
+	f.Intrinsic.UI.Msgbox("No data to Import")
+f.Intrinsic.Control.endif
+
+F.Intrinsic.UI.CloseWaitDialog
+
+f.Intrinsic.Control.Catch
+		F.Intrinsic.UI.CloseWaitDialog
+		f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+	f.Intrinsic.Control.EndTry
+Program.Sub.CCFileExportNew.End
+
+Program.Sub.Read_configFile.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare	
+	
+	
+	V.Local.sRet.Declare
+	V.Local.sFile.Declare
+	V.Local.bEx.Declare
+	V.Local.sFilter.Declare
+	V.Global.sFile1.Declare
+	V.Global.sFile2.Declare
+	V.Global.sOUTPUTFile.Declare
+	v.Local.lRet.Declare
+	
+	V.Global.AP-FU-HDR-BANK-NO.Declare(string)
+	V.Global.HDR-FILE-CONTROL-NO.Declare(string)
+	V.Global.NAOP-NAME.Declare(string)
+	V.Global.NAOP-INDENTIFICATION-NO.Declare(string)
+	V.Global.NAOP-ADDR-LINE-1.Declare(string)
+	V.Global.NAOP-ADDR-LINE-2.Declare(string)
+	V.Global.NAOP-ADDR-LINE-3.Declare(string)
+	V.Global.NAOP-CITY.Declare(string)
+	V.Global.NAOP-STATE.Declare(string)
+	V.Global.NAOP-ZIP.Declare(string)
+	V.Global.NAOP-COUNTRY-CODE.Declare(string)
+	V.Global.NAOP-COUNTRY-NAME.Declare(string)
+	V.Global.NAOP-EMAIL-ADDR.Declare(string)
+	V.Global.NAOP-PHONE-NO.Declare(string)
+
+	
+F.Intrinsic.String.Build("{0}\Custom\5798\GCG_5798.cfg",V.Caller.GlobalDir,V.Local.sFile)
+F.Intrinsic.File.Exists(V.Local.sFile,V.Local.bEx)
+	f.Intrinsic.Control.If(V.Local.bEx,=,True)
+
+	f.Intrinsic.File.File2String(V.Local.sFile,V.Local.sRet)
+	
+	F.Data.DataTable.CreateFromString("DTConfig",V.Local.sRet,"Type*!*Value","string*!*string","|",v.Ambient.NewLine,false)
+	
+	f.Intrinsic.Control.If(v.Caller.Switches,=,"PO")
+		V.Local.sFilter.Set("Type='AP-FU-HDR-BANK-NO'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.AP-FU-HDR-BANK-NO.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='AP-FU-HDR-ACCT-NO'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.AP-FU-HDR-ACCT-NO.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.Else
+		V.Local.sFilter.Set("Type='HDR-FILE-CONTROL-NO'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.HDR-FILE-CONTROL-NO.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+'			f.Intrinsic.String.LPad(V.Global.HDR-FILE-CONTROL-NO,"0",12,V.Global.HDR-FILE-CONTROL-NO)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-NAME'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-NAME.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-INDENTIFICATION-NO'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-INDENTIFICATION-NO.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-ADDR-LINE-1'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-ADDR-LINE-1.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-ADDR-LINE-2'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-ADDR-LINE-2.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-ADDR-LINE-3'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-ADDR-LINE-3.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+	
+		V.Local.sFilter.Set("Type='NAOP-CITY'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-CITY.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-STATE'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-STATE.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-ZIP'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-ZIP.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-COUNTRY-CODE'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-COUNTRY-CODE.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-COUNTRY-NAME'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-COUNTRY-NAME.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-EMAIL-ADDR'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-EMAIL-ADDR.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+		
+		V.Local.sFilter.Set("Type='NAOP-PHONE-NO'")
+		f.Data.DataTable.Select("DTconfig",v.Local.sFilter,V.Local.sRet)
+		f.Intrinsic.Control.If(v.Local.sRet,<>,"***NORETURN***")
+			V.Global.NAOP-PHONE-NO.Set(V.DataTable.DTconfig(V.Local.sRet).Value!FieldValtrim)
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Math.Add(V.Global.HDR-FILE-CONTROL-NO.Long,1,v.Local.lRet)
+	f.Data.DataTable.SetValue("DTConfig",4,"Value",v.Local.lRet)
+	
+	f.Data.Dataview.Create("DTConfig","DVConfig")
+	f.Data.Dataview.ToString("DTConfig","DVConfig","Type*!*Value","|",v.Ambient.NewLine,V.Local.sRet)
+	f.Intrinsic.File.String2File(V.Local.sFile,V.Local.sRet)
+	f.Data.DataTable.Close("DTConfig")
+	
+f.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("Config file GCG_5798.cfg not found")
+	f.Intrinsic.Control.CallSub(SS_Form1_Unload)
+f.Intrinsic.Control.EndIf
+	
+	
+	
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.EndTry
+Program.Sub.Read_configFile.End
+
+Program.Sub.SS_Form1_Unload.Start
+f.Intrinsic.Control.If(v.ODBC.conx.State,=,1)
+	f.ODBC.Connection!conx.Close
+f.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.End
+
+Program.Sub.SS_Form1_Unload.End
+
+Program.Sub.LoadGrid.Start
+F.Intrinsic.Control.Try
+
+V.Local.sError.Declare	
+V.Local.sSql.Declare
+V.Local.dBDate.Declare
+V.Local.dEDate.Declare
+v.Local.i.Declare
+v.Local.iTotClmn.Declare
+v.Local.stitle.Declare
+
+
+V.Local.dBDate.Set(V.Screen.SS_Form1!dtpBeg.Value)
+V.Local.dEDate.Set(V.Screen.SS_Form1!dtpEnd.Value)
+
+'F.Intrinsic.String.Build("Select CONVERT(0,SQL_BIT) as 'Select',Vend_ADDR,CK_DATE, CK_NO, CK_OR_VOID, ACCT_NO,vend_no, AMOUNT,CONVERT(0,SQL_BIT) as Exported ,Name_Vendor as Payee,Address1,Address2,City,State,Code_Zip,Country,Invoice_no as INVno,amount_Cmpny as INVAMT,Invc_date_sql as INVDT from V_CHECKS_LOG  join v_vendor_master Mast on Vend_no = Mast.vendor left join v_VEND_WEB_ADDR on Vend_ID = vend_no  join v_GL_AP_CHECK_DTL on CK_NO = check_number where ucase(Other) = 'Y' and ck_no like 'A%' and CK_DATE between '{0}' and '{1}' order by vend_no,CK_NO  ",V.Local.dBDate.PervasiveDate,V.Local.dEDate.PervasiveDate,V.Local.sSql)
+
+'F.Intrinsic.String.Build("Select CONVERT(0,SQL_BIT) as 'Select',Vend_ADDR,CK_DATE, CK_NO, CK_OR_VOID, ACCT_NO,vend_no, AMOUNT,CONVERT(0,SQL_BIT) as Exported ,Name_Vendor_pay as Payee,Address1_pay as Address1,Address2_pay as Address2,City_pay as City,State_pay as State,Code_Zip_pay as Code_Zip,Country_pay as Country ,Invoice_no as INVno,amount_Cmpny,Check_disc_cmpny,check_Net_cmpny as INVAMT,Invc_date_sql as INVDT from V_CHECKS_LOG  join v_VENDOR_Master on Vend_no = v_VENDOR_Master.vendor join v_VENDOR_PAY_TO Mast on Vend_no = Mast.vendor left join v_VEND_WEB_ADDR on Vend_ID = vend_no  join v_GL_AP_CHECK_DTL on CK_NO = check_number where ucase(v_VENDOR_Master.Other) = 'Y' and ck_no like 'A%' and CK_DATE between '{0}' and '{1}' order by vend_no,CK_NO  ",V.Local.dBDate.PervasiveDate,V.Local.dEDate.PervasiveDate,V.Local.sSql)
+
+'select Batch_NUM+Batch_Line,vendor,Invoice,date_Invoice,amt_Invoice,date_Invoice_due from "v_AP_OPEN_ITEMS" where check_desc like 'MOVED TO CRED CARD VEND%'
+F.Intrinsic.String.Build("Select 0 as PmtRefId,Batch_NUM+Batch_Line as Batch_NUM ,v_AP_OPEN_ITEMS.vendor,name_Vendor,Invoice,date_Invoice,amt_Invoice,DATEADD(day,14,CURDATE()) AS date_Invoice_due ,CONVERT(0,SQL_BIT) as 'Select',CONVERT(0,SQL_BIT) as Exported from v_AP_OPEN_ITEMS Left join v_VENDOR_Master on v_AP_OPEN_ITEMS.vendor = v_VENDOR_Master.vendor where check_desc like 'MOVED TO CRED CARD VEND%' and date_Invoice between '{0}' and '{1}' order by v_AP_OPEN_ITEMS.vendor,date_Invoice  ",V.Local.dBDate.PervasiveDate,V.Local.dEDate.PervasiveDate,V.Local.sSql)
+
+
+f.Intrinsic.Control.If(v.DataTable.DTPAY.Exists,=,True)
+	f.Data.Dataview.Close("DTPAY","DVPAY")
+	f.Data.DataTable.Close("DTPAY")
+	f.Intrinsic.Control.If(v.DataTable.DTLINK.Exists,=,True)
+		f.Data.DataTable.Close("DTLINK")
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+		
+f.Data.DataTable.CreateFromSQL("DTPAY","conx",V.Local.sSql,True)
+F.Data.DataView.Create("DTPAY","DVPAY",22,"","")
+f.Intrinsic.Control.If(V.DataView.DTPAY!DVPAY.RowCount,>,0)
+	F.Intrinsic.UI.InvokeWaitDialog("Loading...","Please Wait...")
+
+	f.Data.DataTable.AddColumn("DTPAY","VENDTOT","float")
+
+
+
+
+	F.Intrinsic.String.Build(" select Batch_NUM_Line  as 'DICTdata',CASE WHEN Exported IS NULL THEN Cast(0 as BIT) else Cast(1 as BIT)  END as Exported from GCG_6304_PCARD  ",V.Local.dBDate.PervasiveDate,V.Local.dEDate.PervasiveDate,V.Local.sSql)
+	F.Data.Dictionary.CreateFromSQL("INVDIC","conx",v.Local.ssql)
+	F.Data.Dictionary.SetDefaultReturn("INVDIC",false)
+	F.Data.DataTable.FillFromDictionary("DTPAY","INVDIC","Batch_NUM","Exported")
+	f.Data.Dictionary.Close("INVDIC")
+
+	gui.SS_Form1.GsGrid.AddGridViewFromDataView("GridView","DTPAY","DVPAY")
+
+
+	gui.SS_Form1.GsGrid.GetColumnCount("GridView",v.Local.iTotClmn)
+	f.Intrinsic.Math.Sub(v.Local.iTotClmn,1,v.Local.iTotClmn)
+	f.Intrinsic.Control.For(v.Local.i,0,v.Local.iTotClmn,1)
+		gui.SS_Form1.GsGrid.GetColumnNamebyIndex("GridView",v.Local.i,v.Local.stitle)
+		gui.SS_Form1.GsGrid.SetColumnProperty("GridView",v.Local.stitle,"AllowEdit",False)
+		gui.SS_Form1.GsGrid.SetColumnProperty("GridView",v.Local.stitle,"ReadOnly",True)
+	
+		gui.SS_Form1.GsGrid.SetColumnProperty("GridView",v.Local.stitle,"HeaderFontBold","True")
+		gui.SS_Form1.GsGrid.SetColumnProperty("GridView",v.Local.stitle,"HeaderBackColor","#7FFF00")
+		gui.SS_Form1.GsGrid.SetColumnProperty("GridView",v.Local.stitle,"HeaderHAlignment","Center")
+		gui.SS_Form1.GsGrid.SetColumnProperty("GridView",v.Local.stitle,"HeaderWordWrap","wrap")
+	f.Intrinsic.Control.Next(v.Local.i)
+
+
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","Select","AllowEdit",True)
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","Select","ReadOnly",False)
+	
+
+
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","name_Vendor","MinWidth",200)
+
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","date_Invoice","Caption","Invoice Date")
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","vendor","Caption","Vendor")
+
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","amt_Invoice","Caption","Invoice Amt")
+
+
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","VENDTOT","visible",false)
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","PmtRefId","visible",false)
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView","Batch_NUM","visible",false)
+
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView", "date_Invoice", "DisplayCustomDatetime", "d")
+	gui.SS_Form1.GsGrid.SetColumnProperty("GridView", "date_Invoice_due", "DisplayCustomDatetime", "d")
+	gui.SS_Form1.GsGrid.SetGridViewProperty("GridView", "OptionsSelectionEnableAppearanceFocusedRow", "False") 
+	
+'	gui.SS_Form1.GsGrid.SetGridViewProperty("GridView","OptionsViewShowAutoFilterRow",True)
+	gui.SS_Form1.GsGrid.MainView("GridView")
+	
+	F.Intrinsic.UI.CloseWaitDialog
+f.Intrinsic.Control.Else
+	f.Intrinsic.UI.Msgbox("No data to Import")
+	f.Data.Dataview.Close("DTPAY","DVPAY")
+	f.Data.DataTable.Close("DTPAY")
+f.Intrinsic.Control.endif
+
+
+
+
+'F.ODBC.Connection!conx.Close
+	
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.UI.CloseWaitDialog
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadGrid.End
+
+Program.Sub.cmdFilter_Click.Start
+	f.Intrinsic.Control.CallSub(LoadGrid)
+Program.Sub.cmdFilter_Click.End
+
+Program.Sub.cmdALL_Click.Start
+f.Intrinsic.Control.Try
+		V.Local.iCnt.Declare(long)
+		V.Local.iRowCnt.Declare(long)
+		v.Local.iColNum.Declare(long)
+		V.Local.sActive.Declare
+		V.Local.sfilter.Declare
+
+		gui.SS_Form1.GsGrid.GetRowCount("GridView",v.Local.iRowCnt)
+		f.Intrinsic.Math.Sub(v.Local.iRowCnt,1,v.Local.iRowCnt)
+		gui.SS_Form1.GsGrid.GetColumnIndexByName("GridView","Select",v.Local.iColNum)
+		f.Intrinsic.Control.For(v.Local.icnt,0,v.Local.iRowCnt,1)
+			gui.SS_Form1.GsGrid.SetCellValue("GridView",v.Local.iColNum,v.local.iCnt,True)
+		f.Intrinsic.Control.Next(v.Local.icnt)
+	
+	f.Intrinsic.Control.Catch
+		
+		f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+	f.Intrinsic.Control.EndTry
+
+Program.Sub.cmdALL_Click.End
+
+Program.Sub.cmdDeselect_Click.Start
+f.Intrinsic.Control.Try
+		V.Local.iCnt.Declare(long)
+		V.Local.iRowCnt.Declare(long)
+		v.Local.iColNum.Declare(long)
+		
+		gui.SS_Form1.GsGrid.GetRowCount("GridView",v.Local.iRowCnt)
+		f.Intrinsic.Math.Sub(v.Local.iRowCnt,1,v.Local.iRowCnt)
+		gui.SS_Form1.GsGrid.GetColumnIndexByName("GridView","Select",v.Local.iColNum)
+		f.Intrinsic.Control.For(v.Local.icnt,0,v.Local.iRowCnt,1)
+			gui.SS_Form1.GsGrid.SetCellValue("GridView",v.Local.iColNum,v.local.iCnt,False)
+		f.Intrinsic.Control.Next(v.Local.icnt)
+	f.Intrinsic.Control.Catch
+		f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+	f.Intrinsic.Control.EndTry
+Program.Sub.cmdDeselect_Click.End
+
+Program.Sub.ErrorMsg.Start
+v.Local.sError.Declare
+
+''Closes ODBC connection, default to connection : "con"
+'f.Intrinsic.Control.If(v.ODBC.conx.State,=,1)
+'	f.ODBC.Connection!conx.Close
+'f.Intrinsic.Control.EndIf
+
+f.Intrinsic.String.Build("Project GCG_56304_PCARD.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.cmdExport_Click.Start
+f.Intrinsic.Control.Try
+
+'f.Intrinsic.Control.CallSub(Process)
+
+
+v.Local.sVendor.Declare
+v.Local.sInvoice.Declare
+v.Local.sHdr.Declare
+v.Local.lmax.Declare
+v.Local.i.Declare
+v.Local.sFilter.Declare
+
+
+f.Intrinsic.Control.CallSub(NewExport)
+		
+F.Intrinsic.UI.CloseWaitDialog
+
+f.Intrinsic.Control.Catch
+		f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+	f.Intrinsic.Control.EndTry
+
+Program.Sub.cmdExport_Click.End
+
+Program.Sub.NewExport.Start
+f.Intrinsic.Control.Try
+v.Local.i.Declare
+v.Local.j.Declare(long)
+v.Local.sFilter.Declare
+v.Local.sHdr.Declare
+v.Local.lmax.Declare
+v.Local.sInvoice.Declare
+V.Local.sRet.Declare
+V.Local.sInvoiceAmt.Declare
+v.Local.lVenCnt.Declare
+
+f.Data.DataView.SetFilter("DTPAY","DVPAY","select=true")
+
+f.Data.DataTable.Create("DTLINK",True)
+f.Data.DataTable.AddColumn("DTLINK","SEQCODE","string")
+
+F.Data.Linq.Join("leftjoin","DataView","DTPAY","DVPAY*!*D","datatable","DTLINK*!*L","D.vendor=L.SEQCODE","D.vendor*!*sum(D.amt_Invoice) as TotalAmt","","D.vendor","","ImportNew",False)
+
+Function.Data.Dictionary.CreateFromDataTable("INVDIC","ImportNew","vendor","TotalAmt")
+F.Data.Dictionary.SetDefaultReturn("INVDIC",0)
+F.Data.DataTable.FillFromDictionary("DTPAY","INVDIC","vendor","VENDTOT")
+f.Data.Dictionary.Close("INVDIC")
+
+'v.Local.lmax.Set(1212)
+ 
+f.ODBC.Connection!conx.ExecuteAndReturn("select max(PmtRefId) from GCG_6304_PCARD",v.Local.lmax)
+ 
+Function.Data.DataView.ToDataTableDistinct("DTPAY","DVPAY","DTExport","vendor")
+f.Intrinsic.Control.for(v.Local.j,0,V.DataTable.DTExport.RowCount--,1)
+	f.Intrinsic.String.Build("vendor='{0}' and select=true",V.DataTable.DTExport(v.Local.j).vendor!FieldValtrim,v.Local.sFilter)
+	f.Data.DataView.SetFilter("DTPAY","DVPAY",v.Local.sFilter)
+	f.Intrinsic.Math.add(v.Local.lmax,1,v.Local.lmax)
+	f.Intrinsic.Math.add(v.Local.lVenCnt,1,v.Local.lVenCnt)
+	f.Data.DataView.SetValue("DTPAY","DVPAY",-1,"PmtRefId",v.Local.lmax)
+'	f.Data.Datatable.AcceptChanges("DTPAY")
+	f.Intrinsic.Control.If(v.Local.j,=,0)	
+		f.Intrinsic.String.Build("<BATCHHEADER>BATCH{2}</BATCHHEADER>{1}<?xml version={0}1.0{0} encoding={0}utf-8{0} ?>{1}<CMA>{1}<BankSvcRq>{1}<RqUID>a1023b97-36c2-46bf-9ee8-0ef50941ef7b</RqUID>{1}<XferAddRq>{1}<RqUID>a1023b97-36c2-46bf-9ee8-0ef50941ef7b</RqUID>{1}",v.Ambient.DblQuote,v.Ambient.NewLine,V.Ambient.Date.FormatYYYYMMDD,v.Local.sHdr)
+	f.Intrinsic.Control.Else	
+		f.Intrinsic.String.Build("{2}{1}<?xml version={0}1.0{0} encoding={0}utf-8{0} ?>{1}<CMA>{1}<BankSvcRq>{1}<RqUID>a1023b97-36c2-46bf-9ee8-0ef50941ef7b</RqUID>{1}<XferAddRq>{1}<RqUID>a1023b97-36c2-46bf-9ee8-0ef50941ef7b</RqUID>{1}",v.Ambient.DblQuote,v.Ambient.NewLine,v.Local.sHdr,v.Local.sHdr)
+	f.Intrinsic.Control.EndIf
+	
+	
+	f.Intrinsic.String.Build("{3}<PmtRefId>{0}</PmtRefId>{1}<CustId>{1}<SPName>Comerica</SPName>{1} <CustPermId>DEMA_MNG</CustPermId>{1}</CustId>{1}<XferInfo>{1}<CardAcctId>{1}<CorpNo>CB</CorpNo>{1}<CompanyNo>00425</CompanyNo>{1}<VendorId>{2}</VendorId>{1}</CardAcctId>{1}",v.Local.lmax,v.Ambient.NewLine,V.DataView.DTPAY!DVPAY(0).name_Vendor!FieldValtrim,v.Local.sHdr,v.Local.sHdr)
+	
+	F.Intrinsic.String.Format(V.DataView.DTPAY!DVPAY(0).date_Invoice_due!FieldVal,"YYYY-MM-DD",V.Local.sRet)
+	
+	f.Intrinsic.String.Build("{3}<CurAmt>{1}<Amt>{0}</Amt>{1}<CurCode>USD</CurCode>{1}</CurAmt>{1}<DueDt>{2}</DueDt>{1}<Category>Card</Category>{1}</XferInfo>{1}<CardInfo>{1}<InvNumber>See below</InvNumber>{1}",V.DataView.DTPAY!DVPAY(0).VENDTOT!FieldVal,v.Ambient.NewLine,V.Local.sRet,v.Local.sHdr,v.Local.sHdr)
+	
+	f.Intrinsic.String.Build("{0}<CardRefId>{Invoice #{Amount}",v.Local.sHdr,v.Local.sHdr)
+
+	f.Intrinsic.Control.for(v.Local.i,0,V.DataView.DTPAY!DVPAY.RowCount--,1)
+		F.Intrinsic.String.Format(V.DataView.DTPAY!DVPAY(v.Local.i).amt_Invoice!FieldVal,"$##0.00",V.Local.sInvoiceAmt)
+		f.Intrinsic.Control.If(v.Local.i,=,0)
+			f.Intrinsic.String.Build("{2}{0}{2}{1}{3}",V.DataView.DTPAY!DVPAY(v.Local.i).Invoice!FieldValtrim,V.Local.sInvoiceAmt,v.ASCII.123,v.ASCII.125,v.Local.sInvoice)
+		f.Intrinsic.Control.Else	
+			f.Intrinsic.String.Build("{0}{3}{1}{3}{2}{4}",v.Local.sInvoice,V.DataView.DTPAY!DVPAY(v.Local.i).Invoice!FieldValtrim,V.Local.sInvoiceAmt,v.ASCII.123,v.ASCII.125,v.Local.sInvoice)
+		f.Intrinsic.Control.EndIf	
+	f.Intrinsic.Control.Next(v.Local.i)
+	f.Intrinsic.String.Build("{0}{1}Contact info: Sherry @ 616-677-5608 or smaslowski@dewysmfg.com</CardRefId>",v.Local.sInvoice,v.ASCII.125,v.Local.sInvoice)
+	f.Intrinsic.String.Build("{0}{1}{2}</CardInfo>{2}</XferAddRq>{2}</BankSvcRq>{2}</CMA>",v.Local.sHdr,v.Local.sInvoice,v.Ambient.NewLine,v.Local.sHdr)
+f.Intrinsic.Control.Next(v.Local.j)
+
+f.Intrinsic.Control.If(v.Local.sHdr,<>,"")
+	f.Intrinsic.String.Build("{0}{1}<BATCHTRAILER>{2}</BATCHTRAILER>",v.Local.sHdr,v.Ambient.NewLine,v.Local.lVenCnt,v.Local.sHdr)
+f.Intrinsic.Control.EndIf
+
+'write to file
+	V.Local.sFolder.Declare
+	v.local.bRet.Declare
+	V.Local.sFile.Declare
+	
+		F.Intrinsic.String.Build("{0}\custom",V.Caller.GlobalDir,V.Local.sFolder)
+		f.Intrinsic.File.DirExists(V.Local.sFolder,v.local.bRet)
+		f.Intrinsic.Control.If(v.local.bRet,=,False)
+			f.Intrinsic.File.CreateDir(V.Local.sFolder)
+		f.Intrinsic.Control.EndIf 
+		
+		F.Intrinsic.String.Build("{0}\6304",V.Local.sFolder,V.Local.sFolder)
+		f.Intrinsic.File.DirExists(V.Local.sFolder,v.local.bRet)
+		f.Intrinsic.Control.If(v.local.bRet,=,False)
+			f.Intrinsic.File.CreateDir(V.Local.sFolder)
+		f.Intrinsic.Control.EndIf 
+		
+'Name the file “PCBGI.DEMA_MNG.BATCH{Date as YYYYMMDD}.xml”. 
+
+v.Local.sdd1.Declare
+v.Local.sdd2.Declare
+v.Local.sdd3.Declare
+		
+		f.Intrinsic.String.Format(v.Ambient.date,"mm",v.Local.sdd1)
+		f.Intrinsic.String.Format(v.Ambient.date,"dd",v.Local.sdd2)
+		f.Intrinsic.String.Format(v.Ambient.date,"YYYY",v.Local.sdd3)
+		'PCBGI.DEMA_MNG.BATCH20200710.xml
+		f.Intrinsic.String.Build("{0}\PCBGI.DEMA_MNG.BATCH.{1}{2}{3}.xml",V.Local.sFolder,v.Local.sdd3,v.Local.sdd2,v.Local.sdd1,V.Local.sFile)
+		F.Intrinsic.File.String2File(V.Local.sFile,v.Local.sHdr)
+
+f.Data.DataView.SetFilter("DTPAY","DVPAY","select=true")
+f.Data.DataView.ToDataTableDistinct("DTPAY","DVPAY","ImportFinal","Batch_NUM*!*PmtRefId")
+f.Data.DataTable.AddColumn("ImportFinal","Exported_By","string",v.Caller.User)
+f.Data.DataTable.AddColumn("ImportFinal","Exported_Date","datetime",v.Ambient.now)
+f.Data.DataTable.AddColumn("ImportFinal","Exported","Bit",1)
+'F.Data.DataTable.SaveToDB("ImportFinal","conx","GCG_6304_PCARD","PmtRefId",256,"Batch_NUM@!@Batch_NUM_Line*!*PmtRefId@!@PmtRefId*!*Exported_By@!@Exported_By*!*Exported_Date@!@Exported_Date*!*Exported@!@Exported")
+F.Data.DataTable.SaveToDB("ImportFinal","conx","GCG_6304_PCARD","Batch_NUM",256,"Batch_NUM@!@Batch_NUM_Line*!*PmtRefId@!@PmtRefId*!*Exported_By@!@Exported_By*!*Exported_Date@!@Exported_Date*!*Exported@!@Exported")
+f.Data.DataView.SetFilter("DTPAY","DVPAY","")
+
+f.Data.Datatable.Close("DTExport")
+f.Data.Dataview.Close("DTPAY","DVPAY")
+f.Data.DataTable.Close("DTPAY")
+f.Data.DataTable.Close("ImportNew")
+f.Data.DataTable.Close("ImportFinal")
+
+f.Intrinsic.UI.Msgbox("File Export completed")
+f.Intrinsic.Control.CallSub(SS_Form1_Unload)
+
+f.Intrinsic.Control.Catch
+		f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+	f.Intrinsic.Control.EndTry
+Program.Sub.NewExport.End
+
+Program.Sub.CheckTable.Start
+f.Intrinsic.Control.Try
+
+v.Local.sError.Declare
+V.Local.sSQLFinal.Declare
+V.Local.bExists.Declare
+
+V.Local.sSQLFinal.Set("CREATE TABLE GCG_6304_PCARD(Batch_NUM_Line CHAR(9) NOT NULL,EXPORTED BIT NOT NULL,EXPORTED_DATE TIMESTAMP,EXPORTED_BY VARCHAR(10),PmtRefId Integer NOT NULL )")
+F.ODBC.Connection!conx.TableExists("GCG_6304_PCARD",V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists,=,False)
+	F.ODBC.Connection!conx.Execute(V.Local.sSQLFinal)
+F.Intrinsic.Control.EndIf
+
+
+	f.Intrinsic.Control.Catch
+		f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+	f.Intrinsic.Control.EndTry
+Program.Sub.CheckTable.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$rnair$}$20210331155008428$}$JUGEdtlNdgRUPvge2DQ26bz/1piQWHOnEk3liiKjM2Le4egr+dNPLiJlNHKrfJgPPjkmgf2DptU=
+Program.Sub.Comments.End
